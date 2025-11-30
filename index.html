@@ -196,10 +196,10 @@
 <body>
 
     <div class="container">
-        <h1>📦 Delivery Tracking List Separator</h1>
+        <h1>📦 UPS Address Check</h1>
         <div class="note">
-            <p><strong>Instructions:</strong> Upload your Excel (.xlsx) or CSV file. The tool will strictly process only tracking numbers starting with <strong>"MI"</strong>.</p>
-            <p><strong>Filtering Criteria (Enhanced):</strong> Tracking Number starts with "MI" AND Address (Column K) contains common apartment keywords OR apartment/unit numbers preceded by separators (like `,` or space).</p>
+            <p><strong>Instructions:</strong> Upload your Excel Orderlist file. The tool will strictly process only tracking numbers starting with <strong>"MI"</strong>.</p>
+            <p><strong>Filtering Criteria (Enhanced):</strong> Tracking Number starts with "MI" AND Address contains common apartment keywords OR apartment/unit numbers preceded by separators (like `,` or space).</p>
         </div>
 
         <input type="file" id="fileInput" accept=".xlsx, .xls, .csv">
@@ -271,7 +271,7 @@
                     buttonElement.textContent = 'Copy Failed!';
                     buttonElement.style.backgroundColor = '#ef4444'; // Red color
                     setTimeout(() => {
-                        buttonElement.textContent = originalText; // Revert to original text (e.g., "Copy Apartment MI")
+                        buttonElement.textContent = originalText; // Revert to original text (e.g., "Copy 270995")
                         buttonElement.style.backgroundColor = '#3b82f6';
                     }, 1500);
                 }
@@ -392,7 +392,7 @@
         function generateListHtml(title, type, records) {
             const contentId = `content-${type}`;
             const copyId = `tracking-list-${type}`;
-            const buttonText = type === 'apartment' ? 'Copy Apartment MI' : 'Copy Standard MI';
+            const buttonText = type === 'apartment' ? 'Copy 270995' : 'Copy 270998';
             
             let html = `<div class="results-section">`;
             
