@@ -126,19 +126,26 @@
             background-color: #2563eb;
             box-shadow: 0 4px 6px rgba(0,0,0,0.15);
         }
-        /* Collapse/Expand Styles */
+        /* --- COLLAPSE/EXPAND STYLES FIX --- */
         .collapsible-content {
-            max-height: 2000px; /* Large initial height */
+            /* Start collapsed by default (or the class is added later for the initial state) */
+            max-height: 0; 
             overflow: hidden;
-            transition: max-height 0.3s ease-in-out;
-            padding-top: 10px;
-        }
-        .collapsible-content.collapsed {
-            max-height: 0;
-            padding-top: 0;
+            transition: max-height 0.5s ease-in-out, padding 0.5s ease-in-out;
+            padding-top: 0; 
             padding-bottom: 0;
             margin-top: 0;
         }
+        
+        /* The expanded state: uses a huge max-height to ensure all content fits and allows for transition */
+        .collapsible-content.expanded {
+            max-height: 9999px; /* Max-height large enough to hold all content */
+            padding-top: 10px; /* Restore padding when expanded */
+            padding-bottom: 10px;
+            margin-top: 10px;
+        }
+        
+        /* Toggle Button Styles */
         .toggle-btn {
             background: none;
             border: none;
@@ -148,10 +155,13 @@
             padding: 0 10px;
             transition: transform 0.3s ease;
             line-height: 1;
-            margin-left: 10px; /* Space between title and toggle */
+            margin-left: 10px;
         }
         .toggle-btn.collapsed {
-            transform: rotate(-90deg);
+            transform: rotate(-90deg); /* Point left when collapsed */
+        }
+        .toggle-btn.expanded {
+            transform: rotate(0deg); /* Point down when expanded */
         }
 
         /* Flex utility for button/title layout */
@@ -217,18 +227,22 @@
          */
         function toggleCollapse(contentId, buttonElement) {
             const content = document.getElementById(contentId);
-            const isCollapsed = content.classList.contains('collapsed');
+            const isExpanded = content.classList.contains('expanded');
 
-            if (isCollapsed) {
-                // Expand
-                content.classList.remove('collapsed');
-                buttonElement.innerHTML = '&#9660;'; // Down arrow
-                buttonElement.setAttribute('aria-expanded', 'true');
-            } else {
+            if (isExpanded) {
                 // Collapse
-                content.classList.add('collapsed');
+                content.classList.remove('expanded');
+                buttonElement.classList.remove('expanded');
+                buttonElement.classList.add('collapsed');
                 buttonElement.innerHTML = '&#9664;'; // Left arrow
                 buttonElement.setAttribute('aria-expanded', 'false');
+            } else {
+                // Expand
+                content.classList.add('expanded');
+                buttonElement.classList.remove('collapsed');
+                buttonElement.classList.add('expanded');
+                buttonElement.innerHTML = '&#9660;'; // Down arrow
+                buttonElement.setAttribute('aria-expanded', 'true');
             }
         }
 
@@ -378,21 +392,29 @@
             let html = '';
             
             // --- Apartment List Section ---
-            html += generateListHtml('Apartment List (UPS "MI" + Apt. Indicator)', 'apartment', apartmentRecords);
+            // Start expanded by default, so we pass 'expanded'
+            html += generateListHtml('Apartment List (UPS "MI" + Apt. Indicator)', 'apartment', apartmentRecords, true);
 
             // --- Redelivery List Section ---
-            html += generateListHtml('Redelivery/Standard List (Remaining UPS "MI" Packages)', 'redelivery', redeliveryRecords);
+            html += generateListHtml('Redelivery/Standard List (Remaining UPS "MI" Packages)', 'redelivery', redeliveryRecords, true);
 
             container.innerHTML = html;
         }
 
         /**
          * Helper function to generate the HTML for a single list section, including the copy button.
+         * @param {boolean} isInitiallyExpanded - Should the content start in the expanded state?
          */
-        function generateListHtml(title, type, records) {
+        function generateListHtml(title, type, records, isInitiallyExpanded = true) {
             const contentId = `content-${type}`;
             const copyId = `tracking-list-${type}`;
             const buttonText = type === 'apartment' ? 'Copy 270995' : 'Copy 270998';
+            
+            // Determine initial classes and attributes
+            const contentClass = isInitiallyExpanded ? 'collapsible-content expanded' : 'collapsible-content';
+            const buttonClass = isInitiallyExpanded ? 'toggle-btn expanded' : 'toggle-btn collapsed';
+            const buttonSymbol = isInitiallyExpanded ? '&#9660;' : '&#9664;'; // Down or Left arrow
+            const ariaExpanded = isInitiallyExpanded ? 'true' : 'false';
             
             let html = `<div class="results-section">`;
             
@@ -400,8 +422,8 @@
             html += `<div class="section-header">`;
             html += `<div class="title-group">`;
             html += `<h2>${title} <span class="summary-count">(${records.length} records)</span></h2>`;
-            html += `<button class="toggle-btn" onclick="toggleCollapse('${contentId}', this)" aria-expanded="true">
-                         &#9660; <!-- Down arrow symbol -->
+            html += `<button class="${buttonClass}" onclick="toggleCollapse('${contentId}', this)" aria-expanded="${ariaExpanded}">
+                         ${buttonSymbol}
                      </button>`;
             html += `</div>`;
             
@@ -418,8 +440,8 @@
                 return html;
             }
 
-            // Collapsible Content Wrapper
-            html += `<div id="${contentId}" class="collapsible-content">`;
+            // Collapsible Content Wrapper - uses the determined initial state class
+            html += `<div id="${contentId}" class="${contentClass}">`;
 
             // Prepare a plain text list for easy copy-pasting of tracking numbers
             const trackingNumbersList = records.map(record => record.tno).join('\n');
