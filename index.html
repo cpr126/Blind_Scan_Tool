@@ -1,470 +1,1150 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Apartment/Redelivery List Extractor</title>
-    <!-- Include SheetJS library from a CDN for Excel/CSV file processing -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <style>
-        body {
-            font-family: 'Inter', Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #eef2f7;
-            min-height: 100vh;
-        }
-        .container {
-            max-width: 1000px;
-            margin: auto;
-            background: #ffffff;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-        }
-        h1 {
-            color: #1e3a8a;
-            font-size: 2rem;
-            margin-bottom: 20px;
-        }
-        /* Styling for the section title bar, including the collapse button */
-        .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding-bottom: 5px;
-            border-bottom: 1px solid #e5e7eb;
-            margin-top: 30px;
-        }
-        .results-section h2 {
-            color: #3b82f6;
-            font-size: 1.5rem;
-            margin: 0;
-            padding: 0;
-            border-bottom: none; /* Title itself should not have a border */
-        }
-        input[type="file"] {
-            display: block;
-            padding: 12px;
-            border: 2px solid #3b82f6;
-            border-radius: 8px;
-            width: 100%;
-            box-sizing: border-box;
-            margin-bottom: 25px;
-            background-color: #f9f9ff;
-            cursor: pointer;
-        }
-        .note {
-            background-color: #eff6ff;
-            color: #1e3a8a;
-            padding: 15px;
-            border: 1px solid #bfdbfe;
-            border-radius: 8px;
-            margin-bottom: 25px;
-        }
-        .results-section {
-            margin-top: 20px;
-            border: 1px solid #d1d5db;
-            border-radius: 8px;
-            padding: 20px;
-            background-color: #f9fafb;
-        }
-        .results-section table {
-            width: 100%;
-            border-collapse: separate;
-            border-spacing: 0;
-            margin-top: 15px;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-        .results-section th, .results-section td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #e5e7eb;
-        }
-        .results-section th {
-            background-color: #dbeafe;
-            color: #1e40af;
-            font-weight: 600;
-            text-transform: uppercase;
-            font-size: 0.85rem;
-        }
-        .results-section tr:last-child td {
-            border-bottom: none;
-        }
-        .results-section tr:hover td {
-            background-color: #f0f9ff;
-        }
-        textarea {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            font-family: monospace;
-            font-size: 0.9rem;
-            margin-top: 10px;
-            box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
-            resize: vertical;
-        }
-        .summary-count {
-            font-weight: bold;
-            color: #059669;
-        }
-        .copy-btn {
-            background-color: #3b82f6;
-            color: white;
-            padding: 8px 15px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: background-color 0.3s ease, box-shadow 0.3s ease;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .copy-btn:hover {
-            background-color: #2563eb;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.15);
-        }
-        /* --- COLLAPSE/EXPAND STYLES FIX --- */
-        .collapsible-content {
-            /* Start collapsed by default (or the class is added later for the initial state) */
-            max-height: 0; 
-            overflow: hidden;
-            transition: max-height 0.5s ease-in-out, padding 0.5s ease-in-out;
-            padding-top: 0; 
-            padding-bottom: 0;
-            margin-top: 0;
-        }
-        
-        /* The expanded state: uses a huge max-height to ensure all content fits and allows for transition */
-        .collapsible-content.expanded {
-            max-height: 9999px; /* Max-height large enough to hold all content */
-            padding-top: 10px; /* Restore padding when expanded */
-            padding-bottom: 10px;
-            margin-top: 10px;
-        }
-        
-        /* Toggle Button Styles */
-        .toggle-btn {
-            background: none;
-            border: none;
-            color: #3b82f6;
-            font-size: 1.5rem;
-            cursor: pointer;
-            padding: 0 10px;
-            transition: transform 0.3s ease;
-            line-height: 1;
-            margin-left: 10px;
-        }
-        .toggle-btn.collapsed {
-            transform: rotate(-90deg); /* Point left when collapsed */
-        }
-        .toggle-btn.expanded {
-            transform: rotate(0deg); /* Point down when expanded */
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TNO Excel Filter</title>
 
-        /* Flex utility for button/title layout */
-        .flex { display: flex; }
-        .justify-between { justify-content: space-between; }
-        .items-center { align-items: center; }
-        .mb-2 { margin-bottom: 0.5rem; }
-        .title-group {
-            display: flex;
-            align-items: center;
-        }
-        /* New button container style for top placement */
-        .top-action-bar {
-            display: flex;
-            gap: 10px;
-            margin-left: auto;
-        }
+  <!-- SheetJS (xlsx) via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
-        /* Responsive adjustments */
-        @media (max-width: 768px) {
-            .container {
-                padding: 15px;
-            }
-            .results-section th, .results-section td {
-                padding: 8px;
-                font-size: 0.9rem;
-            }
-            .section-header {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-            .top-action-bar {
-                margin-left: 0;
-                margin-top: 10px;
-            }
-            .toggle-btn {
-                margin-left: 0;
-            }
-        }
-    </style>
+  <style>
+    :root{
+      --bg:#0b0f17;
+      --text:#e8eefc;
+      --muted:#a9b4d0;
+      --border:#24304a;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      --radius: 16px;
+      --good:#2dd4bf;
+      --warn:#fbbf24;
+      --bad:#fb7185;
+      --dangerBorder: rgba(251,113,133,.85);
+    }
+
+    *{box-sizing:border-box;}
+    body{
+      margin:0;
+      font-family:var(--sans);
+      background: radial-gradient(1200px 600px at 10% 0%, rgba(122,162,255,.18), transparent 60%),
+                  radial-gradient(900px 500px at 90% 10%, rgba(45,212,191,.12), transparent 55%),
+                  var(--bg);
+      color:var(--text);
+      min-height:100vh;
+    }
+
+    header{
+      padding:20px 16px 10px;
+      max-width:1200px;
+      margin:0 auto;
+    }
+
+    h1{
+      margin:0;
+      font-size:20px;
+      letter-spacing:.2px;
+    }
+    .sub{
+      margin-top:6px;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.35;
+    }
+
+    main{
+      max-width:1200px;
+      margin:0 auto;
+      padding:12px 16px 40px;
+      display:grid;
+      grid-template-columns: 380px 1fr;
+      gap:14px;
+    }
+
+    @media (max-width: 980px){
+      main{grid-template-columns:1fr;}
+    }
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+
+    .card .hd{
+      padding:14px 14px 10px;
+      border-bottom:1px solid rgba(36,48,74,.6);
+      background: rgba(18,26,39,.65);
+      backdrop-filter: blur(6px);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    .card .hd h2{
+      margin:0;
+      font-size:14px;
+      letter-spacing:.2px;
+      color:var(--text);
+    }
+
+    .card .bd{ padding:14px; }
+
+    label{
+      display:block;
+      font-size:12px;
+      color:var(--muted);
+      margin-bottom:6px;
+    }
+
+    input[type="file"], input[type="date"], input[type="number"]{
+      width:100%;
+      padding:10px 10px;
+      border-radius:12px;
+      border:1px solid var(--border);
+      background: rgba(15,22,35,.9);
+      color:var(--text);
+      outline:none;
+    }
+
+    input[type="number"]{ appearance:textfield; }
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button{appearance:none; margin:0;}
+
+    .row{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+    .row1{display:grid; grid-template-columns:1fr; gap:10px;}
+
+    .modes{
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+      padding:10px;
+      border:1px solid var(--border);
+      border-radius:12px;
+      background: rgba(15,22,35,.7);
+    }
+    .modes label{
+      margin:0;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      color:var(--text);
+      font-size:13px;
+      cursor:pointer;
+    }
+
+    .btns{display:flex; gap:10px; flex-wrap:wrap;}
+
+    button{
+      border:1px solid var(--border);
+      background: rgba(122,162,255,.14);
+      color: var(--text);
+      padding:10px 12px;
+      border-radius:12px;
+      cursor:pointer;
+      font-weight:600;
+      font-size:13px;
+      white-space:nowrap;
+    }
+    button:hover{filter:brightness(1.06);}
+    button:active{transform:translateY(1px);}
+    button.secondary{background: rgba(255,255,255,.06);}
+    button.small{padding:8px 10px; font-size:12px; border-radius:11px;}
+
+    .hint{
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.35;
+    }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background: rgba(15,22,35,.7);
+      color:var(--muted);
+      font-size:12px;
+      white-space:nowrap;
+    }
+
+    .kpi{ display:flex; gap:10px; flex-wrap:wrap; }
+    .kpi .box{
+      flex: 0 0 auto;
+      padding:10px 12px;
+      border-radius:14px;
+      border:1px solid var(--border);
+      background: rgba(15,22,35,.7);
+      min-width:180px;
+    }
+    .kpi .box .v{font-size:18px; font-weight:800; margin-top:6px;}
+    .kpi .box .t{font-size:12px; color:var(--muted);}
+
+    .alerts{display:grid; gap:10px;}
+    .alert{
+      padding:10px 12px;
+      border-radius:14px;
+      border:1px solid var(--border);
+      background: rgba(15,22,35,.7);
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.35;
+    }
+    .alert.good{border-color:rgba(45,212,191,.45);}
+    .alert.warn{border-color:rgba(251,191,36,.5);}
+    .alert.bad{border-color:rgba(251,113,133,.5);}
+
+    .grid2{display:grid; grid-template-columns: 1fr 1fr; gap:12px;}
+    @media (max-width: 980px){
+      .grid2{grid-template-columns:1fr;}
+    }
+
+    .section{
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      overflow:hidden;
+      background: rgba(18,26,39,.55);
+      min-width: 0;
+    }
+    /* red border variant for “different” sections */
+    .section.danger{
+      border-color: var(--dangerBorder);
+      box-shadow: 0 0 0 1px rgba(251,113,133,.18), var(--shadow);
+    }
+    .section.danger .shd{
+      border-bottom-color: rgba(251,113,133,.35);
+    }
+
+    .section .shd{
+      padding:12px 12px 10px;
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:10px;
+      border-bottom:1px solid rgba(36,48,74,.6);
+      background: rgba(15,22,35,.6);
+      flex-wrap:wrap;
+    }
+
+    .section .shd .title{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      min-width: 0;
+      flex: 1 1 260px;
+    }
+
+    .section .shd .title .name{
+      font-weight:800;
+      font-size:13px;
+      line-height:1.25;
+      word-break:break-word;
+    }
+    .section .shd .title .meta{
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.35;
+      word-break:break-word;
+    }
+
+    .section .shd .actions{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+      align-items:center;
+      flex: 0 0 auto;
+    }
+
+    .section .sbd{
+      padding:12px;
+      display:grid;
+      gap:10px;
+      min-width:0;
+    }
+
+    table{
+      width:100%;
+      border-collapse: collapse;
+      border:1px solid var(--border);
+      border-radius: 14px;
+      overflow:hidden;
+      font-size:12px;
+    }
+
+    th, td{
+      padding:10px;
+      border-bottom:1px solid rgba(36,48,74,.6);
+      text-align:left;
+      vertical-align:top;
+      word-break:break-word;
+    }
+
+    th{color:var(--muted); background: rgba(15,22,35,.7); font-weight:700;}
+    tr:last-child td{border-bottom:none;}
+
+    .split{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    .smallmuted{font-size:12px; color:var(--muted);}
+    .hidden{display:none !important;}
+
+    .stateTable{
+      width:100%;
+      border:1px solid var(--border);
+      border-radius:14px;
+      overflow:hidden;
+      background: rgba(15,22,35,.55);
+    }
+    .stateRow{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      padding:9px 10px;
+      border-bottom:1px solid rgba(36,48,74,.5);
+      font-size:12px;
+      color:var(--text);
+    }
+    .stateRow:last-child{border-bottom:none;}
+    .stateRow .k{color:var(--muted);}
+
+    .footerNote{color:var(--muted); font-size:12px; margin-top:10px; line-height:1.35;}
+  </style>
 </head>
 <body>
-
-    <div class="container">
-        <h1>📦 UPS Address Check</h1>
-        <div class="note">
-            <p><strong>Instructions:</strong> Upload your Excel Orderlist file. The tool will strictly process only tracking numbers starting with <strong>"MI"</strong>.</p>
-            <p><strong>Filtering Criteria (Enhanced):</strong> Tracking Number starts with "MI" AND Address contains common apartment keywords OR apartment/unit numbers preceded by separators (like `,` or space).</p>
-        </div>
-
-        <input type="file" id="fileInput" accept=".xlsx, .xls, .csv">
-
-        <div id="resultsContainer">
-            <p>Upload a file to generate the lists.</p>
-        </div>
+  <header>
+    <h1>TNO Excel Filter</h1>
+    <div class="sub">
+      Upload Excel → dedupe by <span class="pill"><b>tno</b></span>. Lists show only an <b>Expand info</b> table (no big textbox).
     </div>
+  </header>
 
-    <script>
-        document.getElementById('fileInput').addEventListener('change', handleFile, false);
+  <main>
+    <!-- LEFT: Controls -->
+    <section class="card" aria-label="Controls">
+      <div class="hd">
+        <h2>Controls</h2>
+        <span id="fileBadge" class="pill">No file loaded</span>
+      </div>
+      <div class="bd">
+        <div class="row1">
+          <div>
+            <label for="fileInput">Excel File (.xlsx / .xls)</label>
+            <input id="fileInput" type="file" accept=".xlsx,.xls" />
+            <div class="hint" style="margin-top:6px;">Headers matched case-insensitively; string cells trimmed.</div>
+          </div>
 
-        /**
-         * Toggles the collapsed state of a content block.
-         */
-        function toggleCollapse(contentId, buttonElement) {
-            const content = document.getElementById(contentId);
-            const isExpanded = content.classList.contains('expanded');
+          <div>
+            <label>Mode</label>
+            <div class="modes">
+              <label><input type="radio" name="mode" value="before" checked /> Before Blind Scan</label>
+              <label><input type="radio" name="mode" value="after" /> After Blind Scan</label>
+            </div>
+          </div>
 
-            if (isExpanded) {
-                // Collapse
-                content.classList.remove('expanded');
-                buttonElement.classList.remove('expanded');
-                buttonElement.classList.add('collapsed');
-                buttonElement.innerHTML = '&#9664;'; // Left arrow
-                buttonElement.setAttribute('aria-expanded', 'false');
-            } else {
-                // Expand
-                content.classList.add('expanded');
-                buttonElement.classList.remove('collapsed');
-                buttonElement.classList.add('expanded');
-                buttonElement.innerHTML = '&#9660;'; // Down arrow
-                buttonElement.setAttribute('aria-expanded', 'true');
+          <!-- Mode 1 inputs -->
+          <div id="modeBeforeInputs" class="card" style="box-shadow:none;">
+            <div class="hd">
+              <h2>Before Blind Scan Settings</h2>
+              <span class="pill">Service: <b>270992</b></span>
+            </div>
+            <div class="bd">
+              <div class="row">
+                <div>
+                  <label for="refDate">Reference date</label>
+                  <input id="refDate" type="date" />
+                </div>
+                <div>
+                  <label for="xDays">X days (older than)</label>
+                  <input id="xDays" type="number" min="0" step="1" value="10" />
+                </div>
+              </div>
+              <div class="hint" style="margin-top:8px;">
+                Qualifies if <b>199_pathtime</b> is strictly earlier than (<b>reference</b> − <b>X</b> days).
+              </div>
+            </div>
+          </div>
+
+          <div class="btns">
+            <button id="processBtn">Process</button>
+            <button id="resetBtn" class="secondary">Reset / Clear</button>
+          </div>
+
+          <div class="alerts" id="alerts"></div>
+
+          <div class="footerNote">
+            Required columns: <b>tno</b>, <b>state</b>, <b>service_number</b>, <b>199_pathtime</b>, <b>address</b>, <b>warehouse</b>.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT: Summary + Results -->
+    <section class="card" aria-label="Summary and Results">
+      <div class="hd">
+        <h2>Summary & Results</h2>
+        <div class="split">
+          <span id="statusPill" class="pill">Idle</span>
+        </div>
+      </div>
+
+      <div class="bd" style="display:grid; gap:14px;">
+        <!-- Summary -->
+        <div class="card" style="box-shadow:none;">
+          <div class="hd">
+            <h2>Summary (after remove duplicates)</h2>
+            <span class="pill">Always shown after processing</span>
+          </div>
+          <div class="bd">
+            <div class="kpi">
+              <div class="box">
+                <div class="t">Total unique TNO</div>
+                <div class="v" id="kpiTotal">—</div>
+              </div>
+              <div class="box">
+                <div class="t">Redelivery Count (After Blind Scan)</div>
+                <div class="v" id="kpiRedelivery">—</div>
+              </div>
+            </div>
+
+            <div style="margin-top:12px;">
+              <div class="smallmuted" style="margin-bottom:8px;">Counts by <b>state</b> (sorted desc)</div>
+              <div id="stateBreakdown" class="stateTable"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Results -->
+        <div id="results"></div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    /*********************************************************************
+     * Helpers
+     *********************************************************************/
+    function normHeader(h){
+      return String(h ?? "")
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, " ");
+    }
+
+    function normCell(v){
+      if (v == null) return v;
+      if (typeof v === "string") return v.trim();
+      return v;
+    }
+
+    function normTno(v){
+      if (v == null) return "";
+      return String(v).trim();
+    }
+
+    function isMI(tno){
+      return normTno(tno).toLowerCase().startsWith("mi");
+    }
+
+    function normService(v){
+      if (v == null) return "";
+      return String(v).trim();
+    }
+
+    function normState(v){
+      if (v == null || v === "") return "(blank)";
+      return String(v).trim() || "(blank)";
+    }
+
+    function normWarehouse(v){
+      return String(v ?? "").trim();
+    }
+
+    function normAddress(v){
+      return String(v ?? "").trim();
+    }
+
+    function escapeHtml(s){
+      return String(s)
+        .replace(/&/g,"&amp;")
+        .replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;")
+        .replace(/\"/g,"&quot;")
+        .replace(/'/g,"&#039;");
+    }
+
+    function fmtDate(d){
+      if (!d) return "";
+      const hasTime = d.getHours() || d.getMinutes() || d.getSeconds();
+      return hasTime
+        ? d.toLocaleString(undefined, {year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit"})
+        : d.toLocaleDateString(undefined, {year:"numeric", month:"2-digit", day:"2-digit"});
+    }
+
+    async function copyToClipboard(text){
+      try{
+        await navigator.clipboard.writeText(text);
+        toast("Copied to clipboard", "good");
+      }catch{
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        try{document.execCommand("copy"); toast("Copied to clipboard", "good");}
+        catch{toast("Clipboard copy failed", "bad");}
+        finally{document.body.removeChild(ta);}
+      }
+    }
+
+    function toast(message, kind="good"){
+      const box = document.getElementById("alerts");
+      const div = document.createElement("div");
+      div.className = `alert ${kind}`;
+      div.textContent = message;
+      box.prepend(div);
+      setTimeout(()=>div.remove(), 4500);
+    }
+
+    function clearAlerts(){ document.getElementById("alerts").innerHTML = ""; }
+
+    function getMode(){
+      return document.querySelector('input[name="mode"]:checked')?.value || "before";
+    }
+
+    function todayYMD(){
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = String(d.getMonth()+1).padStart(2,"0");
+      const da = String(d.getDate()).padStart(2,"0");
+      return `${y}-${m}-${da}`;
+    }
+
+    function getRefDate(){
+      const v = document.getElementById("refDate").value;
+      if (!v) return null;
+      const [y,m,d] = v.split("-").map(Number);
+      const dt = new Date(y, (m||1)-1, d||1);
+      return isNaN(dt.getTime()) ? null : dt;
+    }
+
+    /**
+     * Robust date parsing for 199_pathtime (LOCAL time to match Excel display).
+     */
+    function parsePathTime(value){
+      value = normCell(value);
+      if (value == null || value === "") return null;
+
+      if (value instanceof Date && !isNaN(value.getTime())) return value;
+
+      if (typeof value === "number" && isFinite(value)){
+        const o = XLSX.SSF.parse_date_code(value);
+        if (o){
+          const d = new Date(o.y, (o.m||1)-1, o.d||1, o.H||0, o.M||0, Math.floor(o.S||0));
+          return isNaN(d.getTime()) ? null : d;
+        }
+        return null;
+      }
+
+      if (typeof value === "string"){
+        const s0 = value.trim();
+        if (/^\d+(\.\d+)?$/.test(s0)){
+          const num = Number(s0);
+          if (isFinite(num)){
+            const o = XLSX.SSF.parse_date_code(num);
+            if (o){
+              const d = new Date(o.y, (o.m||1)-1, o.d||1, o.H||0, o.M||0, Math.floor(o.S||0));
+              return isNaN(d.getTime()) ? null : d;
             }
+          }
+        }
+      }
+
+      if (typeof value === "string"){
+        const s = value.trim();
+
+        let m = s.match(/^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+        if (m){
+          const y = Number(m[1]), mo = Number(m[2]), da = Number(m[3]);
+          const hh = m[4] ? Number(m[4]) : 0;
+          const mm = m[5] ? Number(m[5]) : 0;
+          const ss = m[6] ? Number(m[6]) : 0;
+          const d = new Date(y, mo-1, da, hh, mm, ss);
+          return isNaN(d.getTime()) ? null : d;
         }
 
-        /**
-         * Clears all existing content and displays a loading message.
-         */
-        function showLoading() {
-            document.getElementById('resultsContainer').innerHTML = '<p class="text-center">Processing file, please wait...</p>';
+        m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+        if (m){
+          const mo = Number(m[1]), da = Number(m[2]), y = Number(m[3]);
+          const hh = m[4] ? Number(m[4]) : 0;
+          const mm = m[5] ? Number(m[5]) : 0;
+          const ss = m[6] ? Number(m[6]) : 0;
+          const d = new Date(y, mo-1, da, hh, mm, ss);
+          return isNaN(d.getTime()) ? null : d;
         }
 
-        /**
-         * Copies the content of a specified textarea to the clipboard.
-         * Uses document.execCommand('copy') for better compatibility in iFrame environments.
-         */
-        function copyToClipboard(textareaId, buttonElement) {
-            const textarea = document.getElementById(textareaId);
-            if (textarea) {
-                try {
-                    // Select the content of the textarea
-                    textarea.select();
-                    // Execute the copy command
-                    document.execCommand('copy');
-                    
-                    // Provide feedback
-                    const originalText = buttonElement.textContent;
-                    const originalBg = buttonElement.style.backgroundColor;
-                    
-                    buttonElement.textContent = 'Copied!';
-                    buttonElement.style.backgroundColor = '#10b981'; // Green color
-                    
-                    setTimeout(() => {
-                        buttonElement.textContent = originalText;
-                        buttonElement.style.backgroundColor = originalBg; 
-                    }, 1500);
+        m = s.match(/^(\d{4})(\d{2})(\d{2})$/);
+        if (m){
+          const y = Number(m[1]), mo = Number(m[2]), da = Number(m[3]);
+          const d = new Date(y, mo-1, da);
+          return isNaN(d.getTime()) ? null : d;
+        }
 
-                } catch (err) {
-                    // Fallback for unexpected copy errors
-                    console.error('Failed to copy text: ', err);
-                    // Inform user without using alert()
-                    buttonElement.textContent = 'Copy Failed!';
-                    buttonElement.style.backgroundColor = '#ef4444'; // Red color
-                    setTimeout(() => {
-                        buttonElement.textContent = originalText; // Revert to original text (e.g., "Copy 270995")
-                        buttonElement.style.backgroundColor = '#3b82f6';
-                    }, 1500);
-                }
+        const t = Date.parse(s);
+        if (!Number.isNaN(t)) return new Date(t);
+      }
+
+      return null;
+    }
+
+    /**
+     * UPS Apt/Unit detection (with STE + repeated unit token).
+     */
+    function hasAptInfo(address){
+      const raw = normAddress(address);
+      if (!raw) return false;
+      const a = raw.toLowerCase();
+
+      const hasKeyword =
+        a.includes("apt") ||
+        a.includes("unit") ||
+        a.includes("suite") ||
+        a.includes("cte") ||
+        a.includes("ste") ||
+        a.includes("suite");
+      if (hasKeyword) return true;
+
+      // repeated unit token at end: ", c209, c209" or ", b334, b334"
+      {
+        const parts = a.split(",").map(s => s.trim()).filter(Boolean);
+        if (parts.length >= 2){
+          const clean = (s)=> s.replace(/^#\s*/,"").replace(/\s+/g," ").trim();
+          const last = clean(parts[parts.length - 1]);
+          const prev = clean(parts[parts.length - 2]);
+
+          const looksLikeUnit = (s)=> /^[a-z]\s*\d{1,5}$/.test(s) || /^\d{1,4}$/.test(s);
+
+          if (last && prev && last === prev && looksLikeUnit(last)){
+            if (!/^\d{5}(?:-\d{4})?$/.test(last)) return true;
+          }
+        }
+      }
+
+      // exclude ZIP at end
+      if (/\b\d{5}(?:-\d{4})?\s*$/.test(a)) return false;
+
+      // "... 305" or "... #305"
+      if (/(?:\s|#)(\d{1,4})\s*$/.test(a)) return true;
+
+      return false;
+    }
+
+    /*********************************************************************
+     * Excel load + normalize
+     *********************************************************************/
+    let rawRows = [];
+    let dedupRows = [];
+    let missingTnoCount = 0;        // kept internally for warnings
+    let invalidPathTimeCount = 0;   // kept internally for warnings
+
+    // After mode summary (Redelivery Count)
+    let afterRedeliveryCount = null;
+
+    const REQUIRED = ["tno","state","service_number","199_pathtime","address","warehouse"];
+
+    async function readExcelFile(file){
+      const data = await file.arrayBuffer();
+      const wb = XLSX.read(data, {type:"array"});
+      const sheetName = wb.SheetNames[0];
+      if (!sheetName) throw new Error("No sheets found in workbook.");
+      const ws = wb.Sheets[sheetName];
+
+      const aoa = XLSX.utils.sheet_to_json(ws, {header:1, blankrows:false, defval:""});
+      if (!aoa || aoa.length < 2) throw new Error("Sheet appears empty or missing data rows.");
+
+      const headers = aoa[0].map(normHeader);
+
+      const idx = {};
+      for (let i=0;i<headers.length;i++){
+        const h = headers[i];
+        if (!h) continue;
+        for (const req of REQUIRED){
+          if (h === req) idx[req] = i;
+        }
+      }
+
+      const missing = REQUIRED.filter(k => idx[k] == null);
+      if (missing.length){
+        throw new Error(`Missing required column(s): ${missing.join(", ")}.\n\nFound headers: ${headers.filter(Boolean).join(", ")}`);
+      }
+
+      const rows = [];
+      for (let r=1; r<aoa.length; r++){
+        const rowArr = aoa[r] || [];
+        const obj = {
+          tno: normTno(normCell(rowArr[idx["tno"]])),
+          state: normCell(rowArr[idx["state"]]),
+          service_number: normCell(rowArr[idx["service_number"]]),
+          "199_pathtime": normCell(rowArr[idx["199_pathtime"]]),
+          address: normCell(rowArr[idx["address"]]),
+          warehouse: normCell(rowArr[idx["warehouse"]])
+        };
+        for (const k of Object.keys(obj)) obj[k] = normCell(obj[k]);
+        rows.push(obj);
+      }
+
+      return rows;
+    }
+
+    function deduplicate(rows){
+      const map = new Map();
+      missingTnoCount = 0;
+      invalidPathTimeCount = 0;
+
+      for (let i=0;i<rows.length;i++){
+        const row = rows[i];
+        const tno = normTno(row.tno);
+        if (!tno){ missingTnoCount++; continue; }
+
+        const d = parsePathTime(row["199_pathtime"]);
+        if (row["199_pathtime"] !== "" && row["199_pathtime"] != null && !d){
+          invalidPathTimeCount++;
+        }
+
+        if (!map.has(tno)){
+          map.set(tno, { row, latest: d || null, earliest: d || null });
+          continue;
+        }
+
+        const cur = map.get(tno);
+
+        if (d){
+          if (!cur.earliest || d.getTime() < cur.earliest.getTime()) cur.earliest = d;
+          if (!cur.latest   || d.getTime() > cur.latest.getTime())   cur.latest = d;
+        }
+
+        const repDate = cur.latest;
+        if (d && (!repDate || d.getTime() >= repDate.getTime())){
+          cur.row = row;
+          cur.latest = cur.latest || d;
+        }
+      }
+
+      const dedup = [];
+      for (const [tno, v] of map.entries()){
+        const out = {...v.row};
+        out.__latest_199 = v.latest || null;
+        out.__earliest_199 = v.earliest || null;
+        dedup.push(out);
+      }
+      return dedup;
+    }
+
+    function buildStateBreakdown(rows){
+      const counts = new Map();
+      for (const r of rows){
+        const key = normState(r.state);
+        counts.set(key, (counts.get(key) || 0) + 1);
+      }
+      const arr = Array.from(counts.entries()).map(([state,count])=>({state,count}));
+      arr.sort((a,b)=> b.count - a.count || a.state.localeCompare(b.state));
+      return arr;
+    }
+
+    function setStatus(text){ document.getElementById("statusPill").textContent = text; }
+    function setFileBadge(text){ document.getElementById("fileBadge").textContent = text; }
+
+    function renderSummaryBase(){
+      document.getElementById("kpiTotal").textContent = dedupRows.length.toLocaleString();
+      document.getElementById("kpiRedelivery").textContent =
+        (afterRedeliveryCount == null) ? "—" : afterRedeliveryCount.toLocaleString();
+
+      const sb = document.getElementById("stateBreakdown");
+      sb.innerHTML = "";
+      const breakdown = buildStateBreakdown(dedupRows);
+      for (const {state,count} of breakdown){
+        const row = document.createElement("div");
+        row.className = "stateRow";
+        row.innerHTML = `<span class="k">${escapeHtml(state)}</span><span><b>${count.toLocaleString()}</b></span>`;
+        sb.appendChild(row);
+      }
+      if (!sb.children.length){
+        sb.innerHTML = '<div class="stateRow"><span class="k">(no data)</span><span>—</span></div>';
+      }
+    }
+
+    /**
+     * UI: No big list box (textarea).
+     * - Copy button copies sorted unique TNOs (one per line)
+     * - Expand info shows a table
+     */
+    function createListSection({ id, title, subtitle, tnos, detailsRows, detailColumns, danger=false }){
+      const section = document.createElement("div");
+      section.className = "section" + (danger ? " danger" : "");
+      section.id = id;
+
+      const count = tnos.length;
+
+      section.innerHTML = `
+        <div class="shd">
+          <div class="title">
+            <div class="name">${escapeHtml(title)}</div>
+            <div class="meta">Count: <b>${count.toLocaleString()}</b>${subtitle ? ` • ${escapeHtml(subtitle)}` : ""}</div>
+          </div>
+          <div class="actions">
+            <button class="small" data-action="copy">Copy TNOs</button>
+            <button class="small secondary" data-action="toggle">Expand info</button>
+          </div>
+        </div>
+        <div class="sbd">
+          <div class="details hidden" data-details></div>
+        </div>
+      `;
+
+      section.querySelector('[data-action="copy"]').addEventListener("click", ()=>{
+        copyToClipboard((tnos || []).join("\n"));
+      });
+
+      const toggleBtn = section.querySelector('[data-action="toggle"]');
+      const detailsDiv = section.querySelector('[data-details]');
+      let built = false;
+
+      toggleBtn.addEventListener("click", ()=>{
+        const isHidden = detailsDiv.classList.contains("hidden");
+        if (isHidden){
+          if (!built){
+            built = true;
+
+            const table = document.createElement("table");
+            table.innerHTML = `
+              <thead><tr>${detailColumns.map(c=>`<th>${escapeHtml(c.label)}</th>`).join("")}</tr></thead>
+              <tbody></tbody>
+            `;
+            const tbody = table.querySelector("tbody");
+
+            const map = new Map();
+            for (const r of (detailsRows || [])){
+              const t = normTno(r.tno);
+              if (!t) continue;
+              if (!map.has(t)) map.set(t, r);
             }
+
+            const sorted = Array.from(map.keys())
+              .sort((a,b)=>a.localeCompare(b, undefined, {sensitivity:"base"}))
+              .map(k=>map.get(k));
+
+            tbody.innerHTML = sorted.map(r=>{
+              const cells = detailColumns.map(c=>{
+                let v = r[c.key];
+                if (v == null) v = "";
+                return `<td>${escapeHtml(String(v))}</td>`;
+              }).join("");
+              return `<tr>${cells}</tr>`;
+            }).join("");
+
+            detailsDiv.appendChild(table);
+          }
+
+          detailsDiv.classList.remove("hidden");
+          toggleBtn.textContent = "Collapse info";
+        } else {
+          detailsDiv.classList.add("hidden");
+          toggleBtn.textContent = "Expand info";
+        }
+      });
+
+      return section;
+    }
+
+    function renderModeBefore(){
+      afterRedeliveryCount = null;
+      renderSummaryBase();
+
+      const results = document.getElementById("results");
+      results.innerHTML = "";
+
+      const ref = getRefDate();
+      const x = Math.max(0, parseInt(document.getElementById("xDays").value || "0", 10));
+      if (!ref){
+        toast("Please select a valid reference date.", "warn");
+        return;
+      }
+
+      const threshold = new Date(ref.getTime());
+      threshold.setDate(threshold.getDate() - x);
+
+      const qualifying = [];
+      let service270992InvalidCount = 0;
+
+      for (const r of dedupRows){
+        const svc = normService(r.service_number);
+        if (svc !== "270992") continue;
+
+        const earliest = r.__earliest_199 ?? parsePathTime(r["199_pathtime"]);
+        if (!earliest){
+          if (r["199_pathtime"] !== "" && r["199_pathtime"] != null) service270992InvalidCount++;
+          continue;
         }
 
+        if (earliest.getTime() < threshold.getTime()){
+          qualifying.push({ tno: normTno(r.tno), pathtime: fmtDate(earliest) });
+        }
+      }
 
-        /**
-         * Main function to handle file upload and processing.
-         */
-        function handleFile(e) {
-            const files = e.target.files;
-            if (files.length === 0) return;
+      if (service270992InvalidCount){
+        toast(`Warning: ${service270992InvalidCount.toLocaleString()} deduped row(s) (service 270992) had invalid 199_pathtime and were ignored.`, "warn");
+      }
 
-            showLoading();
+      const tnos = Array.from(new Set(qualifying.map(x=>normTno(x.tno)).filter(Boolean)))
+        .sort((a,b)=>a.localeCompare(b, undefined, {sensitivity:"base"}));
 
-            const file = files[0];
-            const reader = new FileReader();
+      results.appendChild(createListSection({
+        id: "beforeList",
+        title: `Before Blind Scan: 270992 and older than ${x} days`,
+        subtitle: `Reference: ${fmtDate(ref)} • Threshold: before ${fmtDate(threshold)}`,
+        tnos,
+        detailsRows: qualifying,
+        detailColumns: [
+          {key:"tno", label:"tracking number (tno)"},
+          {key:"pathtime", label:"199_pathtime (earliest)"}
+        ]
+      }));
+    }
 
-            reader.onload = function(e) {
-                try {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
+    function renderModeAfter(){
+      const results = document.getElementById("results");
+      results.innerHTML = "";
 
-                    // Assuming the package information is in the first sheet
-                    const firstSheetName = workbook.SheetNames[0];
-                    const worksheet = workbook.Sheets[firstSheetName];
+      const ups = dedupRows.filter(r => isMI(r.tno));
+      const nonUps = dedupRows.filter(r => !isMI(r.tno));
 
-                    // Convert sheet to a 2D array, ensuring we handle raw data for addresses
-                    const sheetData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+      const upsNoAptDetails = [];
+      const upsHasAptDetails = [];
 
-                    // --- Define Column Indices ---
-                    // Tracking Number (TNO) is expected in Column B (index 1)
-                    const TNO_COL_INDEX = 1;
-                    // Address is expected in Column K (index 10)
-                    const ADDRESS_COL_INDEX = 10;
-                    // -----------------------------
+      for (const r of ups){
+        const t = normTno(r.tno);
+        if (!t) continue;
 
-                    const apartmentRecords = [];
-                    const redeliveryRecords = [];
+        const addr = normAddress(r.address);
+        const apt = hasAptInfo(addr);
 
-                    // Start loop from index 1 to skip the header row (index 0)
-                    for (let i = 1; i < sheetData.length; i++) {
-                        const row = sheetData[i];
+        const row = { tno: t, address: addr || "" };
+        if (apt) upsHasAptDetails.push(row);
+        else upsNoAptDetails.push(row);
+      }
 
-                        // Ensure the row has enough columns
-                        if (row.length > ADDRESS_COL_INDEX) {
-                            // Extract and clean the data
-                            const address = (row[ADDRESS_COL_INDEX] || '').toString().trim();
-                            const tno = (row[TNO_COL_INDEX] || '').toString().trim();
+      const list270998 = Array.from(new Set(upsNoAptDetails.map(x=>x.tno)))
+        .sort((a,b)=>a.localeCompare(b, undefined, {sensitivity:"base"}));
+      const list270995 = Array.from(new Set(upsHasAptDetails.map(x=>x.tno)))
+        .sort((a,b)=>a.localeCompare(b, undefined, {sensitivity:"base"}));
 
-                            // Skip rows that are missing a Tracking Number
-                            if (!tno) continue;
+      // Non-MI and service_number == 270992
+      const nonMi270992Details = [];
 
-                            // --- STRICT FILTER 1: UPS Package Check (Tracking Number must start with "MI") ---
-                            const isUpsPackage = tno.toUpperCase().startsWith('MI');
+      // C/D details (270992 removed from allow-list)
+      const allow = new Set(["270990","270991","270993","270994","270995","270996","270997","270999"]);
+      const secCDetails = [];
+      const secDDetails = [];
 
-                            // If it's not a UPS package, ignore it completely (per user request)
-                            if (!isUpsPackage) continue;
+      for (const r of nonUps){
+        const t = normTno(r.tno);
+        if (!t) continue;
 
-                            // --- ENHANCED FILTER 2: Apartment Indicator Check ---
-                            
-                            // 1. Explicit Keywords: unit, apt, ste (case-insensitive)
-                            const keywordPattern = /(unit|apt|ste)/i;
+        const wh = normWarehouse(r.warehouse);
+        const svc = normService(r.service_number);
 
-                            // 2. Complex Suffixes: A pattern to catch common apartment formats:
-                            // It looks for a sequence of characters that:
-                            // - Is preceded by a common separator: comma, space, or pound sign ([\s, #])
-                            // - Is followed by 1 or more digits or letters (e.g., F306, 311, A1, L203, A102)
-                            // This specifically targets the end of the address line where these are usually found.
-                            // \s* ensures it catches spaces (e.g., ", 305" or " St 311")
-                            const suffixPattern = /[\s, #-]\s*[a-z]?\d{1,4}[a-z]?\s*$/i;
-
-                            // Combined check: is the address already explicit OR does it contain a complex suffix?
-                            const isApartmentIndicator = keywordPattern.test(address) || suffixPattern.test(address);
-
-                            const record = { tno, address };
-
-                            // A package is an 'Apartment List' item ONLY IF it has an apartment indicator.
-                            if (isApartmentIndicator) {
-                                apartmentRecords.push(record);
-                            } else {
-                                // Remaining UPS packages (without apt indicators) go to Redelivery list
-                                redeliveryRecords.push(record);
-                            }
-                        }
-                    }
-
-                    displayResults(apartmentRecords, redeliveryRecords);
-                } catch (error) {
-                    document.getElementById('resultsContainer').innerHTML = `<p style="color: red;">Error processing file: ${error.message}. Please ensure the file is a valid Excel (.xlsx, .xls) or CSV format and has data in columns B and K.</p>`;
-                    console.error("File processing error:", error);
-                }
-            };
-
-            reader.readAsArrayBuffer(file);
+        if (svc === "270992"){
+          nonMi270992Details.push({ tno: t, service_number: svc, warehouse: wh });
+          continue;
         }
 
-        /**
-         * Displays the two separate lists (Apartment and Redelivery).
-         */
-        function displayResults(apartmentRecords, redeliveryRecords) {
-            const container = document.getElementById('resultsContainer');
-            let html = '';
-            
-            // --- Apartment List Section ---
-            // Start expanded by default, so we pass 'expanded'
-            html += generateListHtml('Apartment List (UPS "MI" + Apt. Indicator)', 'apartment', apartmentRecords, true);
+        const notSea = !wh.toLowerCase().includes("sea warehouse");
+        const inAllow = allow.has(svc);
 
-            // --- Redelivery List Section ---
-            html += generateListHtml('Redelivery/Standard List (Remaining UPS "MI" Packages)', 'redelivery', redeliveryRecords, true);
+        const row = { tno: t, service_number: svc, warehouse: wh };
+        if (notSea || inAllow) secCDetails.push(row);
+        else secDDetails.push(row);
+      }
 
-            container.innerHTML = html;
+      const list270992NonMI = Array.from(new Set(nonMi270992Details.map(x=>x.tno)))
+        .sort((a,b)=>a.localeCompare(b, undefined, {sensitivity:"base"}));
+      const listC = Array.from(new Set(secCDetails.map(x=>x.tno)))
+        .sort((a,b)=>a.localeCompare(b, undefined, {sensitivity:"base"}));
+      const listD = Array.from(new Set(secDDetails.map(x=>x.tno)))
+        .sort((a,b)=>a.localeCompare(b, undefined, {sensitivity:"base"}));
+
+      afterRedeliveryCount = list270992NonMI.length + list270998.length + listD.length;
+      renderSummaryBase();
+
+      const wrap = document.createElement("div");
+      wrap.className = "grid2";
+
+      wrap.appendChild(createListSection({
+        id:"afterA",
+        title:"270998: UPS MI packages WITHOUT apt info",
+        subtitle:"tno starts with MI AND address has no apt/unit/suite/cte/ste/unit-number",
+        tnos: list270998,
+        detailsRows: upsNoAptDetails,
+        detailColumns: [
+          {key:"tno", label:"tracking number (tno)"},
+          {key:"address", label:"address"}
+        ],
+        danger:false
+      }));
+
+      wrap.appendChild(createListSection({
+        id:"afterB",
+        title:"270995: UPS MI packages WITH apt info",
+        subtitle:"tno starts with MI AND address has apt/unit/suite/cte/ste/suite or unit-number",
+        tnos: list270995,
+        detailsRows: upsHasAptDetails,
+        detailColumns: [
+          {key:"tno", label:"tracking number (tno)"},
+          {key:"address", label:"address"}
+        ],
+        danger:true
+      }));
+
+      const wrap2 = document.createElement("div");
+      wrap2.className = "grid2";
+
+      wrap2.appendChild(createListSection({
+        id:"after270992",
+        title:"270992: Non-UPS (non-MI) service_number == 270992",
+        subtitle:"non-MI AND service_number == 270992",
+        tnos: list270992NonMI,
+        detailsRows: nonMi270992Details,
+        detailColumns: [
+          {key:"tno", label:"tracking number (tno)"},
+          {key:"service_number", label:"service_number"},
+          {key:"warehouse", label:"warehouse"}
+        ],
+        danger:false
+      }));
+
+      wrap2.appendChild(createListSection({
+        id:"afterC",
+        title:"Non-UPS: Not SEA Warehouse & in service allow-list",
+        subtitle:"non-MI AND warehouse != 'SEA Warehouse' OR service_number in {270990,270991,270993,270994,270995,270996,270997,270999}",
+        tnos: listC,
+        detailsRows: secCDetails,
+        detailColumns: [
+          {key:"tno", label:"tracking number (tno)"},
+          {key:"service_number", label:"service_number"},
+          {key:"warehouse", label:"warehouse"}
+        ],
+        danger:true
+      }));
+
+      const wrap3 = document.createElement("div");
+      wrap3.className = "grid2";
+
+      wrap3.appendChild(createListSection({
+        id:"afterD",
+        title:"270998: Remaining",
+        subtitle:"All remaining non-MI rows not in Section C or 270992",
+        tnos: listD,
+        detailsRows: secDDetails,
+        detailColumns: [
+          {key:"tno", label:"tracking number (tno)"},
+          {key:"service_number", label:"service_number"},
+          {key:"warehouse", label:"warehouse"}
+        ],
+        danger:false
+      }));
+
+      results.appendChild(wrap);
+      results.appendChild(wrap2);
+      results.appendChild(wrap3);
+    }
+
+    function renderResults(){
+      const mode = getMode();
+      document.getElementById("modeBeforeInputs").classList.toggle("hidden", mode !== "before");
+      if (mode === "before") renderModeBefore();
+      else renderModeAfter();
+    }
+
+    /*********************************************************************
+     * UI wiring
+     *********************************************************************/
+    document.getElementById("refDate").value = todayYMD();
+
+    document.querySelectorAll('input[name="mode"]').forEach(r=>{
+      r.addEventListener("change", ()=>{
+        document.getElementById("modeBeforeInputs").classList.toggle("hidden", getMode() !== "before");
+        afterRedeliveryCount = null;
+        renderSummaryBase();
+        document.getElementById("results").innerHTML = "";
+      });
+    });
+
+    document.getElementById("fileInput").addEventListener("change", (e)=>{
+      const f = e.target.files?.[0];
+      setFileBadge(f ? f.name : "No file loaded");
+    });
+
+    document.getElementById("resetBtn").addEventListener("click", ()=>{
+      clearAlerts();
+      rawRows = [];
+      dedupRows = [];
+      missingTnoCount = 0;
+      invalidPathTimeCount = 0;
+      afterRedeliveryCount = null;
+      document.getElementById("fileInput").value = "";
+      document.getElementById("kpiTotal").textContent = "—";
+      document.getElementById("kpiRedelivery").textContent = "—";
+      document.getElementById("stateBreakdown").innerHTML = "";
+      document.getElementById("results").innerHTML = "";
+      setStatus("Idle");
+      setFileBadge("No file loaded");
+      toast("Cleared.", "good");
+    });
+
+    document.getElementById("processBtn").addEventListener("click", async ()=>{
+      clearAlerts();
+      const file = document.getElementById("fileInput").files?.[0];
+      if (!file){
+        toast("Please choose an Excel file first.", "warn");
+        return;
+      }
+
+      setStatus("Processing…");
+      setFileBadge(file.name);
+
+      try{
+        rawRows = await readExcelFile(file);
+        dedupRows = deduplicate(rawRows);
+
+        afterRedeliveryCount = null;
+        renderSummaryBase();
+
+        // still warn (but not shown in summary)
+        if (missingTnoCount > 0){
+          toast(`Warning: ${missingTnoCount.toLocaleString()} row(s) were missing TNO and were ignored.`, "warn");
+        }
+        if (invalidPathTimeCount > 0 && getMode() === "before"){
+          toast(`Warning: ${invalidPathTimeCount.toLocaleString()} row(s) had invalid 199_pathtime (non-empty).`, "warn");
         }
 
-        /**
-         * Helper function to generate the HTML for a single list section, including the copy button.
-         * @param {boolean} isInitiallyExpanded - Should the content start in the expanded state?
-         */
-        function generateListHtml(title, type, records, isInitiallyExpanded = true) {
-            const contentId = `content-${type}`;
-            const copyId = `tracking-list-${type}`;
-            const buttonText = type === 'apartment' ? 'Copy 270995' : 'Copy 270998';
-            
-            // Determine initial classes and attributes
-            const contentClass = isInitiallyExpanded ? 'collapsible-content expanded' : 'collapsible-content';
-            const buttonClass = isInitiallyExpanded ? 'toggle-btn expanded' : 'toggle-btn collapsed';
-            const buttonSymbol = isInitiallyExpanded ? '&#9660;' : '&#9664;'; // Down or Left arrow
-            const ariaExpanded = isInitiallyExpanded ? 'true' : 'false';
-            
-            let html = `<div class="results-section">`;
-            
-            // Section Header with Title, Toggle Button, and Copy Button
-            html += `<div class="section-header">`;
-            html += `<div class="title-group">`;
-            html += `<h2>${title} <span class="summary-count">(${records.length} records)</span></h2>`;
-            html += `<button class="${buttonClass}" onclick="toggleCollapse('${contentId}', this)" aria-expanded="${ariaExpanded}">
-                         ${buttonSymbol}
-                     </button>`;
-            html += `</div>`;
-            
-            // TOP COPY BUTTON
-            html += `<div class="top-action-bar">`;
-            html += `<button id="btn-top-${type}" class="copy-btn" onclick="copyToClipboard('${copyId}', this)">${buttonText}</button>`;
-            html += `</div>`;
-            
-            html += `</div>`; // End section-header
-
-            if (records.length === 0) {
-                html += `<p>No records found for the ${type} list based on current filters.</p>`;
-                html += `</div>`;
-                return html;
-            }
-
-            // Collapsible Content Wrapper - uses the determined initial state class
-            html += `<div id="${contentId}" class="${contentClass}">`;
-
-            // Prepare a plain text list for easy copy-pasting of tracking numbers
-            const trackingNumbersList = records.map(record => record.tno).join('\n');
-
-            // Table of records for manual check
-            html += '<table>';
-            html += '<thead><tr><th>Tracking Number</th><th>Address (Column K)</th></tr></thead>';
-            html += '<tbody>';
-            
-            records.forEach(record => {
-                html += `<tr><td>${record.tno}</td><td>${record.address}</td></tr>`;
-            });
-            
-            html += '</tbody></table>';
-
-            // Copyable text area (moved the copy button to the top)
-            html += `<h3>Tracking Numbers for Copying:</h3>`;
-            html += `<textarea id="${copyId}" rows="10" onclick="this.select();" readonly>${trackingNumbersList}</textarea>`;
-            
-            html += `</div>`; // End collapsible-content
-            html += '</div>'; // End results-section
-            return html;
-        }
-    </script>
+        renderResults();
+        setStatus("Done");
+      }catch(err){
+        console.error(err);
+        setStatus("Error");
+        toast(String(err?.message || err), "bad");
+      }
+    });
+  </script>
 </body>
 </html>
