@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Blind Scan Tool, SEA Only</title>
+  <title>SEA Blind Scan Tool</title>
 
   <!-- SheetJS (xlsx) via CDN -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -212,7 +212,6 @@
       background: rgba(18,26,39,.55);
       min-width: 0;
     }
-    /* red border variant for “different” sections */
     .section.danger{
       border-color: var(--dangerBorder);
       box-shadow: 0 0 0 1px rgba(251,113,133,.18), var(--shadow);
@@ -326,7 +325,7 @@
   <header>
     <h1>SEA Blind Scan Tool</h1>
     <div class="sub">
-      Upload Excel → dedupe by <span class="pill"><b>tno</b></span>. Lists show only an <b>Expand info</b> table (no big textbox).
+      Upload Excel → deduplicate by <span class="pill"><b>tno</b></span>. Lists show only an <b>Expand info</b> table (no big textbox).
     </div>
   </header>
 
@@ -403,7 +402,7 @@
         <!-- Summary -->
         <div class="card" style="box-shadow:none;">
           <div class="hd">
-            <h2>Summary (after remove duplicates)</h2>
+            <h2>Summary (after dedupe)</h2>
             <span class="pill">Always shown after processing</span>
           </div>
           <div class="bd">
@@ -411,6 +410,10 @@
               <div class="box">
                 <div class="t">Total unique TNO</div>
                 <div class="v" id="kpiTotal">—</div>
+              </div>
+              <div class="box" id="kpiUps199Box" class="hidden">
+                <div class="t">UPS 199 Count (Before Blind Scan)</div>
+                <div class="v" id="kpiUps199">—</div>
               </div>
               <div class="box">
                 <div class="t">Redelivery Count (After Blind Scan)</div>
@@ -465,6 +468,11 @@
     function normState(v){
       if (v == null || v === "") return "(blank)";
       return String(v).trim() || "(blank)";
+    }
+
+    function isState199(v){
+      // Accept 199 as number or string with spaces.
+      return String(v ?? "").trim() === "199";
     }
 
     function normWarehouse(v){
@@ -618,7 +626,6 @@
       const hasKeyword =
         a.includes("apt") ||
         a.includes("unit") ||
-        a.includes("suite") ||
         a.includes("cte") ||
         a.includes("ste") ||
         a.includes("suite");
@@ -654,11 +661,14 @@
      *********************************************************************/
     let rawRows = [];
     let dedupRows = [];
-    let missingTnoCount = 0;        // kept internally for warnings
-    let invalidPathTimeCount = 0;   // kept internally for warnings
+    let missingTnoCount = 0;        // internal warning only
+    let invalidPathTimeCount = 0;   // internal warning only
 
     // After mode summary (Redelivery Count)
     let afterRedeliveryCount = null;
+
+    // NEW: Before mode summary (UPS 199 count)
+    let beforeUps199Count = null;
 
     const REQUIRED = ["tno","state","service_number","199_pathtime","address","warehouse"];
 
@@ -764,10 +774,31 @@
     function setStatus(text){ document.getElementById("statusPill").textContent = text; }
     function setFileBadge(text){ document.getElementById("fileBadge").textContent = text; }
 
+    function computeBeforeUps199Count(){
+      // Count MI (UPS) packages with state == 199 in the deduped dataset.
+      let c = 0;
+      for (const r of dedupRows){
+        if (isMI(r.tno) && isState199(r.state)) c++;
+      }
+      return c;
+    }
+
     function renderSummaryBase(){
       document.getElementById("kpiTotal").textContent = dedupRows.length.toLocaleString();
       document.getElementById("kpiRedelivery").textContent =
         (afterRedeliveryCount == null) ? "—" : afterRedeliveryCount.toLocaleString();
+
+      // Show UPS 199 KPI only in Before mode (and only after processing).
+      const mode = getMode();
+      const upsBox = document.getElementById("kpiUps199Box");
+      const upsVal = document.getElementById("kpiUps199");
+      if (mode === "before" && beforeUps199Count != null){
+        upsBox.style.display = "";
+        upsVal.textContent = beforeUps199Count.toLocaleString();
+      } else {
+        upsBox.style.display = "none";
+        upsVal.textContent = "—";
+      }
 
       const sb = document.getElementById("stateBreakdown");
       sb.innerHTML = "";
@@ -867,7 +898,12 @@
     }
 
     function renderModeBefore(){
+      // compute UPS 199 count for summary (MI + state 199)
+      beforeUps199Count = computeBeforeUps199Count();
+
+      // not meaningful in before mode
       afterRedeliveryCount = null;
+
       renderSummaryBase();
 
       const results = document.getElementById("results");
@@ -922,6 +958,9 @@
     }
 
     function renderModeAfter(){
+      // hide before-only KPI
+      beforeUps199Count = null;
+
       const results = document.getElementById("results");
       results.innerHTML = "";
 
@@ -952,7 +991,7 @@
       const nonMi270992Details = [];
 
       // C/D details (270992 removed from allow-list)
-      const allow = new Set(["270990","270991","270993","270994","270995","270996","270997","270999"]);
+      const allow = new Set(["270991","270993","270994","270995","270996","270997","270999"]);
       const secCDetails = [];
       const secDDetails = [];
 
@@ -992,7 +1031,7 @@
       wrap.appendChild(createListSection({
         id:"afterA",
         title:"270998: UPS MI packages WITHOUT apt info",
-        subtitle:"tno starts with MI AND address has no apt/unit/suite/cte/ste/unit-number",
+        subtitle:"tno starts with MI AND address has no apt/unit/cte/ste/unit-number",
         tnos: list270998,
         detailsRows: upsNoAptDetails,
         detailColumns: [
@@ -1005,7 +1044,7 @@
       wrap.appendChild(createListSection({
         id:"afterB",
         title:"270995: UPS MI packages WITH apt info",
-        subtitle:"tno starts with MI AND address has apt/unit/suite/cte/ste/suite or unit-number",
+        subtitle:"tno starts with MI AND address has apt/unit/cte/ste/suite or unit-number",
         tnos: list270995,
         detailsRows: upsHasAptDetails,
         detailColumns: [
@@ -1035,7 +1074,7 @@
       wrap2.appendChild(createListSection({
         id:"afterC",
         title:"Non-UPS: Not SEA Warehouse & in service allow-list",
-        subtitle:"non-MI AND warehouse != 'SEA Warehouse' OR service_number in {270990,270991,270993,270994,270995,270996,270997,270999}",
+        subtitle:"non-MI AND warehouse !contains 'SEA Warehouse' OR service_number in {270991,270993,270994,270995,270996,270997,270999}",
         tnos: listC,
         detailsRows: secCDetails,
         detailColumns: [
@@ -1084,6 +1123,7 @@
       r.addEventListener("change", ()=>{
         document.getElementById("modeBeforeInputs").classList.toggle("hidden", getMode() !== "before");
         afterRedeliveryCount = null;
+        beforeUps199Count = null;
         renderSummaryBase();
         document.getElementById("results").innerHTML = "";
       });
@@ -1101,9 +1141,12 @@
       missingTnoCount = 0;
       invalidPathTimeCount = 0;
       afterRedeliveryCount = null;
+      beforeUps199Count = null;
       document.getElementById("fileInput").value = "";
       document.getElementById("kpiTotal").textContent = "—";
       document.getElementById("kpiRedelivery").textContent = "—";
+      document.getElementById("kpiUps199").textContent = "—";
+      document.getElementById("kpiUps199Box").style.display = "none";
       document.getElementById("stateBreakdown").innerHTML = "";
       document.getElementById("results").innerHTML = "";
       setStatus("Idle");
@@ -1127,9 +1170,9 @@
         dedupRows = deduplicate(rawRows);
 
         afterRedeliveryCount = null;
-        renderSummaryBase();
+        beforeUps199Count = null;
 
-        // still warn (but not shown in summary)
+        // still warn (not shown in summary)
         if (missingTnoCount > 0){
           toast(`Warning: ${missingTnoCount.toLocaleString()} row(s) were missing TNO and were ignored.`, "warn");
         }
